@@ -8,43 +8,134 @@ services:
     env_file:
       - ./api-gateway/.env.docker
     depends_on:
-      - api
+      - auth-service
+      - account-service
+      - transaction-service
+      - loan-service
     restart: unless-stopped
 
-  api:
-    build: .
-    container_name: banking_api
+  auth-service:
+    build: ./auth-service
+    container_name: banking_auth
     ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:admin123@postgres:5432/bankdb
-      SECRET_KEY: banking-app-secret-key-2024-do-not-share-ever
-      ALGORITHM: HS256
-      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      - "8001:8001"
+    env_file:
+      - ./auth-service/.env.docker
     depends_on:
-      postgres:
+      auth-postgres:
         condition: service_healthy
-    volumes:
-      - .:/app
     restart: unless-stopped
 
-  postgres:
+  account-service:
+    build: ./account-service
+    container_name: banking_account
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./account-service/.env.docker
+    depends_on:
+      account-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  transaction-service:
+    build: ./transaction-service
+    container_name: banking_transaction
+    ports:
+      - "8003:8003"
+    env_file:
+      - ./transaction-service/.env.docker
+    depends_on:
+      transaction-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  loan-service:
+    build: ./loan-service
+    container_name: banking_loan
+    ports:
+      - "8004:8004"
+    env_file:
+      - ./loan-service/.env.docker
+    depends_on:
+      loan-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  auth-postgres:
     image: postgres:15-alpine
-    container_name: banking_postgres
+    container_name: banking_auth_postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: bankdb
+      POSTGRES_DB: auth_db
     ports:
-      - "5432:5432"
+      - "5441:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - auth_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bankdb"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  account-postgres:
+    image: postgres:15-alpine
+    container_name: banking_account_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: account_db
+    ports:
+      - "5442:5432"
+    volumes:
+      - account_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d account_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  transaction-postgres:
+    image: postgres:15-alpine
+    container_name: banking_transaction_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: transaction_db
+    ports:
+      - "5443:5432"
+    volumes:
+      - transaction_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d transaction_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  loan-postgres:
+    image: postgres:15-alpine
+    container_name: banking_loan_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: loan_db
+    ports:
+      - "5444:5432"
+    volumes:
+      - loan_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d loan_db"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  auth_postgres_data:
+  account_postgres_data:
+  transaction_postgres_data:
+  loan_postgres_data:
